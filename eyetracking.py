@@ -10,8 +10,8 @@ from scipy.interpolate import CubicSpline
 pygame.init()
 
 # Ustawienia ekranu
-SCREEN_WIDTH = 1400
-SCREEN_HEIGHT = 700
+SCREEN_WIDTH = 1600
+SCREEN_HEIGHT = 800
 BG_COLOR = (0, 0, 0)
 POINT_COLOR = (255, 0, 0)
 POINT_RADIUS = 10
@@ -28,10 +28,15 @@ def draw_point(x, y):
 
 # Lista punktów do kalibracji
 CALIBRATION_POINTS = [
-    (int(0.1 * SCREEN_WIDTH), int(0.1 * SCREEN_HEIGHT)),
-    (int(0.9 * SCREEN_WIDTH), int(0.1 * SCREEN_HEIGHT)),
-    (int(0.1 * SCREEN_WIDTH), int(0.9 * SCREEN_HEIGHT)),
-    (int(0.9 * SCREEN_WIDTH), int(0.9 * SCREEN_HEIGHT))
+    (int(0.05 * SCREEN_WIDTH), int(0.05 * SCREEN_HEIGHT)),
+    (int(0.5 * SCREEN_WIDTH), int(0.05 * SCREEN_HEIGHT)),
+    (int(0.95 * SCREEN_WIDTH), int(0.05 * SCREEN_HEIGHT)),
+    (int(0.05 * SCREEN_WIDTH), int(0.5 * SCREEN_HEIGHT)),
+    (int(0.5 * SCREEN_WIDTH), int(0.5 * SCREEN_HEIGHT)),
+    (int(0.95 * SCREEN_WIDTH), int(0.5 * SCREEN_HEIGHT)),
+    (int(0.05 * SCREEN_WIDTH), int(0.95 * SCREEN_HEIGHT)),
+    (int(0.5 * SCREEN_WIDTH), int(0.95 * SCREEN_HEIGHT)),
+    (int(0.95 * SCREEN_WIDTH), int(0.95 * SCREEN_HEIGHT)),
 ]
 
 
@@ -50,8 +55,9 @@ def calibrate(gaze, webcam):
             draw_calibration_points(i)
             time.sleep(2)
             _, frame = webcam.read()
-            frame = frame[150:300, 250:400]
+            #frame = frame[000:400, 200:500]
             frame = cv2.resize(frame, (1200, 1200))
+            frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
             gaze.refresh(frame)  # Pobieramy nową klatkę z eyetrackera
             left_eye_coords = gaze.pupil_left_coords()
             right_eye_coords = gaze.pupil_right_coords()
@@ -69,8 +75,35 @@ def calibrate(gaze, webcam):
 
     return calibration_data
 
+def create_calibration_function(calibration_data):
+    left_eye_x = list()
+    left_eye_y= list()
+    right_eye_x = list()
+    right_eye_y = list()
+    x_cords = list()
+    y_cords = list()
+    for elem in calibration_data:
+        left_eye_x.append(elem[1][0])
+        left_eye_y.append(elem[1][1])
+        right_eye_x.append(elem[2][0])
+        right_eye_y.append(elem[2][1])
+        x_cords.append(elem[0][0])
+        y_cords.append(elem[0][1])
 
-def interpolate_calibration_data(calibration_data, left_eye_position, right_eye_position):
+
+    degree = 2
+    coefx = np.polyfit(left_eye_x,x_cords,degree)
+    coefy = np.polyfit(left_eye_y,y_cords,degree)
+    coefx2 = np.polyfit(right_eye_x, x_cords, degree)
+    coefy2 = np.polyfit(right_eye_y, y_cords, degree)
+    polyx_left = np.poly1d(coefx)
+    polyy_left = np.poly1d(coefy)
+    polyx_right = np.poly1d(coefx2)
+    polyy_right = np.poly1d(coefy2)
+    return polyx_left, polyy_left, polyx_right, polyy_right
+
+
+def interpolate_calibration_data(calibration_data, left_eye_position, right_eye_position,*wielomiany):
     # Oblicz granice kwadratu na podstawie punktów kalibracyjnych
     left_x_values, left_y_values = zip(*[calibration[1] for calibration in calibration_data])
     right_x_values, right_y_values = zip(*[calibration[2] for calibration in calibration_data])
@@ -81,25 +114,32 @@ def interpolate_calibration_data(calibration_data, left_eye_position, right_eye_
     right_min_x, right_max_x = min(right_x_values), max(right_x_values)
     right_min_y, right_max_y = min(right_y_values), max(right_y_values)
 
-    # Oblicz granice kwadratu łącząc lewe i prawe oko
     min_x = (left_min_x + right_min_x) / 2
     min_y = (left_min_y + right_min_y) / 2
     max_x = (left_max_x + right_max_x) / 2
     max_y = (left_max_y + right_max_y) / 2
 
-    # Oblicz średnią pozycję oczu
-    eye_position = (
-        (left_eye_position[0] + right_eye_position[0]) / 2, (left_eye_position[1] + right_eye_position[1]) / 2)
-
     # Interpolacja liniowa na podstawie granic kwadratu
-    x = np.interp(eye_position[0], [min_x, max_x], [0, SCREEN_WIDTH])
-    y = np.interp(eye_position[1], [min_y, max_y], [0, SCREEN_HEIGHT])
+    x_lewy = wielomiany[0](left_eye_position[0])
+    y_lewy = wielomiany[1](left_eye_position[1])
+    x_prawy = wielomiany[2](right_eye_position[0])
+    y_prawy = wielomiany[3](right_eye_position[1])
 
     # Obróć o 180 stopni, jeśli to konieczne
-    x = SCREEN_WIDTH - x
+    #x = SCREEN_WIDTH - x
 
-    print(x, y)
+    x=int((x_prawy + x_lewy)/2)
+    y=int((y_prawy + y_lewy) / 2)
+
+    #x = np.interp(x, [min_x, max_x], [0, SCREEN_WIDTH])
+    #y = np.interp(y, [min_y, max_y], [0, SCREEN_HEIGHT])
+
+    #print(x,y)
+
     return x, y
+
+
+
 
 
 # Inicjalizacja eyetrackera
@@ -108,6 +148,10 @@ webcam = cv2.VideoCapture(1)
 
 # Kalibracja
 calibration_data = calibrate(gaze, webcam)
+wielomianx_lewy,wielomiany_lewy,wielomianx_prawy,wielomiany_prawy=create_calibration_function(calibration_data)
+
+
+
 x_positions=[]
 y_positions=[]
 
@@ -115,12 +159,14 @@ x_average=0
 y_average=0
 
 while True:
-
-    for i in range(3):
+    i = 0
+    while i < 3:
         # Pobieramy nową klatkę z kamery
         _, frame = webcam.read()
-        frame = frame[150:300, 250:400]
+
+        #frame = frame[000:400, 200:500]
         frame = cv2.resize(frame, (1200, 1200))
+        frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
         gaze.refresh(frame)
 
     # Odczytujemy współrzędne gałek ocznych
@@ -135,15 +181,16 @@ while True:
 
             # Interpolacja danych kalibracyjnych dla lewego oka
             calibrated_eye_x, calibrated_eye_y = interpolate_calibration_data(calibration_data, (left_eye_x, left_eye_y),
-                                                                              (right_eye_x, right_eye_y))
+                                                                              (right_eye_x, right_eye_y),wielomianx_lewy,wielomiany_lewy,wielomianx_prawy,wielomiany_prawy)
             x_positions.append(calibrated_eye_x)
             y_positions.append(calibrated_eye_y)
-            i = +1
+            i += 1
 
     x_average=sum(x_positions)/len(x_positions)
     y_average=sum(y_positions)/len(y_positions)
     x_positions.clear()
     y_positions.clear()
+    print(x_average, y_average)
     # Odświeżenie ekran
     screen.fill(BG_COLOR)
     draw_point(x_average, y_average)
