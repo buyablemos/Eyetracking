@@ -6,10 +6,10 @@ Check the README.md for complete documentation.
 import cv2
 from gaze_tracking import GazeTracking
 
-frame_width = 800
-frame_height = 600
-desired_width = 350
-desired_height = 300
+frame_width = 1280
+frame_height = 720
+desired_width = 640
+desired_height = 720
 x = (frame_width - desired_width) // 2
 y = (frame_height - desired_height) // 2
 
@@ -19,7 +19,8 @@ webcam = cv2.VideoCapture(1)
 while True:
     # We get a new frame from the webcam
     _, frame = webcam.read()
-    #frame = frame[y:y+desired_height, x:x+desired_width]
+    #frame = frame[150:300, 250:400]
+    #frame = cv2.resize(frame, (700, 700))
 
     # We send this frame to GazeTracking to analyze it
     gaze.refresh(frame)
