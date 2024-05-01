@@ -14,14 +14,14 @@ x = (frame_width - desired_width) // 2
 y = (frame_height - desired_height) // 2
 
 gaze = GazeTracking()
-webcam = cv2.VideoCapture(1)
+webcam = cv2.VideoCapture(0)
 
 while True:
     # We get a new frame from the webcam
     _, frame = webcam.read()
-    #frame = frame[000:400, 200:500]
+    frame = frame[150:300, 250:400]
     frame = cv2.resize(frame, (1100, 1100))
-    frame=cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+    #frame=cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
 
     # We send this frame to GazeTracking to analyze it
     gaze.refresh(frame)
