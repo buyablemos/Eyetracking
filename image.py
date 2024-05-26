@@ -15,7 +15,7 @@ alpha = 0.5
 blended_image = cv2.addWeighted(screenshot, 1 - alpha, heatmap_resized, alpha, 0)
 
 # Save or display the result
-cv2.imwrite('blended_image.png', blended_image)
+cv2.imwrite('heatmap_screen.png', blended_image)
 # Or display the result
 cv2.imshow('Blended Image', blended_image)
 cv2.waitKey(0)
