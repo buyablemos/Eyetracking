@@ -84,14 +84,17 @@ def draw_point(x, y, color):
 
 def get_color(value, min_val, max_val):
     normalized_value = (value - min_val) / (max_val - min_val)
+    
     if normalized_value < 0.1:
-        return (0, 0, 0)
+        return (255,255,int(255 * (1 - (normalized_value / 0.1))))
+    
     elif normalized_value < 0.5:
-        return (int(255 * normalized_value * 2), 0, 0)
-    elif normalized_value < 0.7:
-        return (255, int(255 * (normalized_value - 0.5) / 0.2), 0)
+        return (255,int(255 - (90 * ((normalized_value - 0.1) / 0.4))),0)
+    
     else:
-        return (255, int(165 + 90 * (normalized_value - 0.7) / 0.3), 0)
+        return (255,int(165 * (1 - ((normalized_value - 0.5) / 0.5))),0)
+
+
 
 
 def draw_heatmap(x_average, y_average):
