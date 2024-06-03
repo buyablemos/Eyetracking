@@ -86,7 +86,6 @@ def draw_heatmap_from_points(points, page_width, page_height):
 
 
 def calibrate():
-    pygame.quit()
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("Calibration")
@@ -157,7 +156,11 @@ def interpolate_calibration_data(left_eye_position, right_eye_position, *wielomi
 
     return x, y
 
-result = subprocess.run(['node', 'make_screen_shot.js'], capture_output=True, text=True)
+driver = init_driver()
+app = BrowserTrackerApp(driver)
+page_height, page_width, viewport_height,viewport_width, scroll_top = app.return_dimensions()
+driver.close()
+result = subprocess.run(['node', 'make_screen_shot.js', 'http://comarch.pl', str(viewport_width), str(viewport_height)], capture_output=True, text=True)
 
 wyjscie = result.stdout
 
@@ -178,9 +181,7 @@ wielomianx_lewy, wielomiany_lewy, wielomianx_prawy, wielomiany_prawy = create_ca
 x_positions = []
 y_positions = []
 
-driver = init_driver()
-app = BrowserTrackerApp(driver)
-page_height, page_width, viewport_height, scroll_top = app.return_dimensions()
+
 pygame.init()
 pygame.display.set_caption("Eye Tracking")
 screen = pygame.display.set_mode((page_width, page_height))
@@ -195,6 +196,7 @@ y_average = 0
 
 running = True
 time.sleep(5)
+driver = init_driver()
 while running:
     i = 0
     while i < 4:
