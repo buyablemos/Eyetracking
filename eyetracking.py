@@ -6,6 +6,8 @@ import time
 from scipy.ndimage import gaussian_filter
 from scroll import *
 from image import *
+from image2 import *
+import subprocess
 
 # Ustawienia ekranu
 SCREEN_WIDTH = 1500
@@ -155,8 +157,12 @@ def interpolate_calibration_data(left_eye_position, right_eye_position, *wielomi
 
     return x, y
 
+result = subprocess.run(['node', 'make_screen_shot.js'], capture_output=True, text=True)
 
-# Inicjalizacja eyetrackera
+wyjscie = result.stdout
+
+print(wyjscie)
+
 gaze = GazeTracking()
 webcam = cv2.VideoCapture(0)
 
@@ -256,6 +262,7 @@ while running:
             draw_heatmap_from_points(points_for_heatmap, page_width, page_height)
             pygame.image.save(screen, 'zapisana_heatmapa.png')
             create_heatmap_on_screen()
+            create_opacity_map_on_screen()
             pygame.quit()
             webcam.release()
             break

@@ -21,4 +21,4 @@ def create_heatmap_on_screen():
     # Or display the result
     #cv2.imshow('Blended Image', blended_image)
     #cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    #cv2.destroyAllWindows()

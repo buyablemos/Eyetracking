@@ -10,5 +10,6 @@ const puppeteer = require('puppeteer');
   });
   await page.screenshot({ path: 'full_page_screenshot.png', fullPage: true });
   await browser.close();
+  console.log("Screenshot zrobiony");
   process.exit();
 })();
