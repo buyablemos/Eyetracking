@@ -8,10 +8,16 @@ from scroll import *
 from image import *
 from image2 import *
 import subprocess
+import pyautogui
+
+
+def capture_screenshot():
+    screenshot = pyautogui.screenshot()
+    return cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2BGR)
 
 # Ustawienia ekranu
-SCREEN_WIDTH = 1500
-SCREEN_HEIGHT = 800
+SCREEN_WIDTH = 1440
+SCREEN_HEIGHT = 760
 BG_COLOR = (0, 0, 0)
 BG_HEATMAP_COLOR = (255,255, 255)
 POINT_COLOR = (255, 0, 0)
@@ -44,6 +50,10 @@ def draw_calibration_points(point_index, screen):
     pygame.display.flip()
 
 
+def overlay_heatmap(frame, heatmap):
+    heatmap_resized = cv2.resize(heatmap, (frame.shape[1], frame.shape[0]))
+    return cv2.addWeighted(frame, 0.6, heatmap_resized, 0.4, 0)
+
 def draw_point(x, y, color, screen):
     pygame.draw.circle(screen, color, (x, y), POINT_RADIUS)
 
@@ -58,8 +68,12 @@ def get_color(value, min_val, max_val):
         return 255, int(165 * (1 - ((normalized_value - 0.5) / 0.5))), 0
 
 
-def draw_heatmap_from_points(points, page_width, page_height):
+def draw_heatmap_from_points(points, page_width=SCREEN_WIDTH, page_height=SCREEN_HEIGHT):
     global max_val
+    global heatmap
+
+
+    heatmap_color=np.zeros((SCREEN_WIDTH, SCREEN_HEIGHT,3), dtype=np.uint8)
 
     for x, y in np.ndindex(heatmap.shape):
         heatmap[x, y] /= 2
@@ -82,7 +96,9 @@ def draw_heatmap_from_points(points, page_width, page_height):
             color = get_color(heatmap_smooth[x, y], min_val, max_val)
             for i in range(x, min(x + 10, page_width)):
                 for j in range(y, min(y + 10, page_height)):
-                    screen.set_at((i, j), color)
+                    heatmap_color[i][j]=color
+
+    return heatmap_color
 
 
 def calibrate():
@@ -100,6 +116,7 @@ def calibrate():
             if current_time - last_time_checked > 1000:  # Check every second (1000 milliseconds)
                 last_time_checked = current_time
                 _, frame = webcam.read()
+                frame = cv2.rotate(frame, cv2.ROTATE_180)
                 gaze.refresh(frame)  # Pobieramy nową klatkę z eyetrackera
                 left_eye_coords = gaze.pupil_left_coords()
                 right_eye_coords = gaze.pupil_right_coords()
@@ -156,15 +173,6 @@ def interpolate_calibration_data(left_eye_position, right_eye_position, *wielomi
 
     return x, y
 
-driver = init_driver()
-app = BrowserTrackerApp(driver)
-page_height, page_width, viewport_height,viewport_width, scroll_top = app.return_dimensions()
-driver.close()
-result = subprocess.run(['node', 'make_screen_shot.js', 'http://comarch.pl', str(viewport_width), str(viewport_height)], capture_output=True, text=True)
-
-wyjscie = result.stdout
-
-print(wyjscie)
 
 gaze = GazeTracking()
 webcam = cv2.VideoCapture(0)
@@ -174,34 +182,31 @@ points = []
 # Kalibracja
 calibration_data = calibrate()
 
-time.sleep(5)
-
 wielomianx_lewy, wielomiany_lewy, wielomianx_prawy, wielomiany_prawy = create_calibration_function(calibration_data)
 
 x_positions = []
 y_positions = []
+filename = 'screen_recording_with_heatmap.avi'
 
-
-pygame.init()
-pygame.display.set_caption("Eye Tracking")
-screen = pygame.display.set_mode((page_width, page_height))
 
 points_for_heatmap = []
-heatmap = np.zeros((page_width, page_height))
-heatmap_smooth = np.zeros((page_width, page_height))
+heatmap = np.zeros((SCREEN_WIDTH, SCREEN_HEIGHT))
+heatmap_smooth = np.zeros((SCREEN_WIDTH, SCREEN_HEIGHT))
 max_val = 0
 
 x_average = 0
 y_average = 0
 
 running = True
-time.sleep(5)
-driver = init_driver()
+
+out = cv2.VideoWriter(filename, cv2.VideoWriter_fourcc(*'XVID'), 10, (SCREEN_WIDTH, SCREEN_HEIGHT))
+
 while running:
     i = 0
     while i < 4:
         # Pobieramy nową klatkę z kamery
         _, frame = webcam.read()
+        frame = cv2.rotate(frame, cv2.ROTATE_180)
         gaze.refresh(frame)
 
         # Odczytujemy współrzędne gałek ocznych
@@ -225,49 +230,28 @@ while running:
     x_average = sum(x_positions) / len(x_positions)
     y_average = sum(y_positions) / len(y_positions)
 
-    if x_average > page_width:
-        x_average = page_width
+    if x_average > SCREEN_WIDTH:
+        x_average = SCREEN_WIDTH
     if x_average < 0:
         x_average = 0
 
-    if y_average > viewport_height:
-        y_average = viewport_height
+    if y_average > SCREEN_HEIGHT:
+        y_average = SCREEN_HEIGHT
     if y_average < 0:
         y_average = 0
 
-    app = BrowserTrackerApp(driver)
-    dimension = app.return_dimensions()
-    scroll_top = dimension[3]
-
-
-    y_average = y_average + scroll_top
-
-    if y_average > page_height:
-        y_average = page_height
-
     points_for_heatmap.append((x_average, y_average))
+
+    screenshot = capture_screenshot()
+    heatmap_image = draw_heatmap_from_points(points_for_heatmap)
+    overlayed_frame = overlay_heatmap(screenshot, heatmap_image)
+    out.write(overlayed_frame)
+
 
     x_positions.clear()
     y_positions.clear()
     print(x_average, y_average)
 
-    # Odświeżenie ekran
-    screen.fill(BG_COLOR)
-    draw_point(x_average, y_average, (0, 0, 255), screen)
-    pygame.display.flip()
-
-    # Obsługa zdarzeń
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-            pygame.display.flip()
-            draw_heatmap_from_points(points_for_heatmap, page_width, page_height)
-            pygame.image.save(screen, 'zapisana_heatmapa.png')
-            create_heatmap_on_screen()
-            create_opacity_map_on_screen()
-            pygame.quit()
-            webcam.release()
-            break
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            draw_heatmap_from_points(points_for_heatmap, page_width, page_height)
-            pygame.display.flip()
+out.release()
+webcam.release()
+cv2.destroyAllWindows()

@@ -1,15 +1,16 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
-
+import time
 
 def init_driver():
     # Inicjalizacja przeglądarki
     options = webdriver.ChromeOptions()
     options.add_argument('--start-fullscreen')
+    options.add_argument('--ignore-certificate-errors')
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=options)
-    driver.get('https://www.comarch.pl/')
+    driver.get('https://csc.poc.us.comarch.com/selfcare/eshop')
     return driver
 
 class BrowserTrackerApp:
@@ -20,14 +21,6 @@ class BrowserTrackerApp:
         self.update_position()
 
 
-    def init_driver(self):
-        # Inicjalizacja przeglądarki
-        options = webdriver.ChromeOptions()
-        options.add_argument('--start-fullscreen')
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=options)
-        driver.get('https://www.comarch.pl/')
-        return driver
 
     def get_page_metrics(self):
         # Uruchamianie JavaScript w przeglądarce i pobieranie wymiarów strony i okna
@@ -44,3 +37,4 @@ class BrowserTrackerApp:
 
     def return_dimensions(self):
         return [self.page_height, self.page_width, self.viewport_height,self.viewport_width, self.scroll_top]
+

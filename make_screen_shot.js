@@ -12,13 +12,17 @@ if (!url || isNaN(width) || isNaN(height)) {
 }
 
 (async () => {
-  const browser = await puppeteer.launch();
+  const browser = await puppeteer.launch({
+    args: ['--ignore-certificate-errors']
+  });
   const page = await browser.newPage();
   await page.goto(url);
   await page.setViewport({
     width: width,
     height: height
   });
+
+  await new Promise(resolve => setTimeout(resolve, 8000));
 
   await page.screenshot({ path: 'full_page_screenshot.png', fullPage: true });
   await browser.close();
