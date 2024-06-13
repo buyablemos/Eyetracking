@@ -9,6 +9,7 @@ import time
 from scipy.ndimage import gaussian_filter
 from mss import mss
 from concurrent.futures import ThreadPoolExecutor
+import scroll
 
 
 pygame.init()
@@ -68,12 +69,13 @@ def get_color(value, min_val, max_val):
 
 
 def process_block(x, y, min_val):
+    global heatmap_image
     color = get_color(heatmap_smooth[x, y], min_val, max_val)
     heatmap_image[x:x + 10, y:y + 10] = color
     pass
 
 def draw_heatmap():
-    global max_val, heatmap_smooth, points_for_heatmap,heatmap
+    global max_val, heatmap_smooth, points_for_heatmap,heatmap,heatmap_image
 
     for x_average, y_average in points_for_heatmap:
         x_average = int(x_average)
@@ -96,7 +98,7 @@ def draw_heatmap():
     max_val = np.max(heatmap_smooth)
 
 
-    heatmap /= 3
+    heatmap /= 6
 
     tasks = []
     with ThreadPoolExecutor(max_workers=8) as executor:
@@ -105,6 +107,7 @@ def draw_heatmap():
                 tasks.append(executor.submit(process_block, x, y, min_val))
     for task in tasks:
         task.result()
+
 
 def draw_calibration_points(point_index):
     screen.fill(BG_COLOR)
@@ -170,7 +173,7 @@ webcam = cv2.VideoCapture(0)
 
 # Calibration
 calibration_data = calibrate(gaze, webcam)
-
+driver=scroll.init_driver()
 polyx_left, polyy_left, polyx_right, polyy_right = create_calibration_function(calibration_data)
 
 x_positions = []
@@ -232,8 +235,10 @@ try:
 
             if it == 4:
                 draw_heatmap()
+                heatmap_image = np.swapaxes(heatmap_image, 0, 1)
                 points_for_heatmap.clear()
                 heatmap_resized = cv2.resize(heatmap_image, (screen_img.shape[1], screen_img.shape[0]))
+                heatmap_image = np.swapaxes(heatmap_image, 0, 1)
                 it = 0
             it += 1
 
