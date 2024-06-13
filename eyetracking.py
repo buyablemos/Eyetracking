@@ -67,41 +67,42 @@ def get_color(value, min_val, max_val):
         return 0,int(165 * (1 - ((normalized_value - 0.5) / 0.5))), 255
 
 
-def process_block(x, y,min_val, max_val):
+def process_block(x, y, min_val):
     color = get_color(heatmap_smooth[x, y], min_val, max_val)
     heatmap_image[x:x + 10, y:y + 10] = color
+    pass
 
 def draw_heatmap():
-    global max_val, heatmap_smooth, points_for_heatmap
-    min_val=0
+    global max_val, heatmap_smooth, points_for_heatmap,heatmap
 
     for x_average, y_average in points_for_heatmap:
-            x_average = int(x_average)
-            y_average = int(y_average)
+        x_average = int(x_average)
+        y_average = int(y_average)
 
-            if 0 <= x_average < SCREEN_WIDTH and 0 <= y_average < SCREEN_HEIGHT:
-                heatmap[max(0, x_average - 10): min(SCREEN_WIDTH, x_average + 10),
-                        max(0, y_average - 10): min(SCREEN_HEIGHT, y_average + 10)] += 10
+        if 0 <= x_average < SCREEN_WIDTH and 0 <= y_average < SCREEN_HEIGHT:
+            x_min = max(0, x_average - 10)
+            x_max = min(SCREEN_WIDTH, x_average + 10)
+            y_min = max(0, y_average - 10)
+            y_max = min(SCREEN_HEIGHT, y_average + 10)
 
-                local_max = np.max(heatmap[max(0, x_average - 10): min(SCREEN_WIDTH, x_average + 10),
-                                           max(0, y_average - 10): min(SCREEN_HEIGHT, y_average + 10)])
-                if local_max > max_val:
-                    max_val = local_max
+            heatmap[x_min:x_max, y_min:y_max] += 10
+            local_max = np.max(heatmap[x_min:x_max, y_min:y_max])
+            if local_max > max_val:
+                max_val = local_max
 
-            heatmap_smooth = gaussian_filter(heatmap, sigma=12)
-            min_val = np.min(heatmap_smooth)
-            max_val = np.max(heatmap_smooth)
 
-     #stygniecie
-    for x, y in np.ndindex(heatmap.shape):
-        heatmap[x, y] /= 2
+    heatmap_smooth = gaussian_filter(heatmap, sigma=12)
+    min_val = np.min(heatmap_smooth)
+    max_val = np.max(heatmap_smooth)
+
+
+    heatmap /= 3
 
     tasks = []
-
     with ThreadPoolExecutor(max_workers=8) as executor:
         for x in range(0, SCREEN_WIDTH, 10):
             for y in range(0, SCREEN_HEIGHT, 10):
-                tasks.append(executor.submit(process_block, x, y, min_val, max_val))
+                tasks.append(executor.submit(process_block, x, y, min_val))
     for task in tasks:
         task.result()
 
@@ -185,7 +186,7 @@ out = cv2.VideoWriter('output.avi', fourcc, 2.0, (monitor['width'], monitor['hei
 it = 0
 try:
     while True:
-        for i in range(4):
+        for i in range(3):
             ret, frame = webcam.read()
             if not ret:
                 continue
@@ -232,12 +233,15 @@ try:
             if it == 4:
                 draw_heatmap()
                 points_for_heatmap.clear()
+                heatmap_resized = cv2.resize(heatmap_image, (screen_img.shape[1], screen_img.shape[0]))
                 it = 0
             it += 1
 
-            heatmap_resized = cv2.resize(heatmap_image, (screen_img.shape[1], screen_img.shape[0]))
-            
-            blended_image = cv2.addWeighted(screen_img, 0.4, heatmap_resized, 0.6, 0)
+            if 'heatmap_resized' in locals() and heatmap_resized is not None:
+                blended_image = cv2.addWeighted(screen_img, 0.4, heatmap_resized, 0.6, 0)
+            else:
+                blended_image = screen_img
+
             out.write(blended_image)
 
         for event in pygame.event.get():

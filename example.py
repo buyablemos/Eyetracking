@@ -22,7 +22,7 @@ while True:
     #frame = frame[100:1000, 300:1100]
     #frame = cv2.resize(frame, (1100, 1100))
 
-    #frame = cv2.rotate(frame, cv2.ROTATE_180)
+    frame = cv2.rotate(frame, cv2.ROTATE_180)
 
     # We send this frame to GazeTracking to analyze it
     gaze.refresh(frame)
