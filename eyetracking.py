@@ -49,9 +49,10 @@ CALIBRATION_POINTS = [
     (int(0.95 * SCREEN_WIDTH), int(0.95 * SCREEN_HEIGHT)),
 ]
 
-heatmap = np.zeros((SCREEN_WIDTH, SCREEN_HEIGHT))
-heatmap_smooth = np.zeros((SCREEN_WIDTH, SCREEN_HEIGHT))
-heatmap_image = np.zeros((SCREEN_WIDTH, SCREEN_HEIGHT, 3), dtype=np.uint8)
+heatmap = np.zeros((SCREEN_HEIGHT, SCREEN_WIDTH))
+heatmap_smooth = np.zeros((SCREEN_HEIGHT, SCREEN_WIDTH))
+heatmap_image = np.zeros((SCREEN_HEIGHT, SCREEN_WIDTH, 3), dtype=np.uint8)
+
 max_val = 0
 
 def draw_point(x, y, color):
@@ -70,8 +71,8 @@ def get_color(value, min_val, max_val):
 
 def process_block(x, y, min_val):
     global heatmap_image
-    color = get_color(heatmap_smooth[x, y], min_val, max_val)
-    heatmap_image[x:x + 10, y:y + 10] = color
+    color = get_color(heatmap_smooth[y, x], min_val, max_val)
+    heatmap_image[y:y + 10, x:x + 10] = color
     pass
 
 def draw_heatmap():
@@ -87,8 +88,8 @@ def draw_heatmap():
             y_min = max(0, y_average - 10)
             y_max = min(SCREEN_HEIGHT, y_average + 10)
 
-            heatmap[x_min:x_max, y_min:y_max] += 10
-            local_max = np.max(heatmap[x_min:x_max, y_min:y_max])
+            heatmap[y_min:y_max, x_min:x_max] += 10
+            local_max = np.max(heatmap[ y_min:y_max,x_min:x_max,])
             if local_max > max_val:
                 max_val = local_max
 
@@ -97,13 +98,13 @@ def draw_heatmap():
     min_val = np.min(heatmap_smooth)
     max_val = np.max(heatmap_smooth)
 
-
-    heatmap /= 6
+    heatmap *= 2
+    heatmap /= 3
 
     tasks = []
     with ThreadPoolExecutor(max_workers=8) as executor:
-        for x in range(0, SCREEN_WIDTH, 10):
-            for y in range(0, SCREEN_HEIGHT, 10):
+        for y in range(0, SCREEN_HEIGHT, 10):
+            for x in range(0, SCREEN_WIDTH, 10):
                 tasks.append(executor.submit(process_block, x, y, min_val))
     for task in tasks:
         task.result()
@@ -186,7 +187,7 @@ monitor = sct.monitors[0]
 
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 out = cv2.VideoWriter('output.avi', fourcc, 2.0, (monitor['width'], monitor['height']))
-it = 0
+
 try:
     while True:
         for i in range(3):
@@ -233,14 +234,11 @@ try:
             screen_img = np.array(screen_shot)
             screen_img = cv2.cvtColor(screen_img, cv2.COLOR_BGRA2BGR)
 
-            if it == 4:
-                draw_heatmap()
-                heatmap_image = np.swapaxes(heatmap_image, 0, 1)
-                points_for_heatmap.clear()
-                heatmap_resized = cv2.resize(heatmap_image, (screen_img.shape[1], screen_img.shape[0]))
-                heatmap_image = np.swapaxes(heatmap_image, 0, 1)
-                it = 0
-            it += 1
+
+            draw_heatmap()
+
+            points_for_heatmap.clear()
+            heatmap_resized = cv2.resize(heatmap_image, (screen_img.shape[1], screen_img.shape[0]))
 
             if 'heatmap_resized' in locals() and heatmap_resized is not None:
                 blended_image = cv2.addWeighted(screen_img, 0.4, heatmap_resized, 0.6, 0)

@@ -11,6 +11,7 @@ def init_driver():
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=options)
     driver.get('https://csc.poc.us.comarch.com/selfcare/eshop')
+    #driver.get('https://orange.pl')
     return driver
 
 
