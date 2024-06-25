@@ -58,7 +58,7 @@ def calibrate(gaze, webcam):
             ret, frame = webcam.read()
             if not ret:
                 continue
-
+            frame = cv2.rotate(frame, cv2.ROTATE_180)
             gaze.refresh(frame)
             left_eye_coords = gaze.pupil_left_coords()
             right_eye_coords = gaze.pupil_right_coords()
@@ -100,42 +100,32 @@ def interpolate_calibration_data(left_eye_position, right_eye_position, polyx_le
     return x, y
 
 def create_dot_overlay():
-    # Create a top-level window
     overlay = tk.Toplevel()
     overlay.title("Dot Overlay")
     
-    # Set the size and position of the window to be small and centered
     size = 20
     overlay.geometry(f"{size}x{size}+0+0")
 
-    # Make the window transparent
     overlay.attributes('-alpha', 0.5)
     
-    # Make the window stay on top
     overlay.attributes('-topmost', True)
 
-    # Remove the window border and title bar
     overlay.overrideredirect(1)
 
-    # Make the window click-through
     hwnd = windll.user32.GetParent(overlay.winfo_id())
     styles = windll.user32.GetWindowLongPtrW(hwnd, -20)
     windll.user32.SetWindowLongPtrW(hwnd, -20, styles | 0x80000 | 0x20)
 
-    # Create a canvas to draw the dot
     canvas = tk.Canvas(overlay, width=size, height=size, bg='blue', highlightthickness=0)
     canvas.pack(fill="both", expand=True)
     
-    # Draw a dot (circle) in the center of the canvas
     radius = size // 2
     dot = canvas.create_oval(0, 0, size, size, fill='red', outline='')
 
-    # Function to close the overlay and the root window
     def close_overlay(event=None):
         overlay.destroy()
         root.quit()
 
-    # Bind the Escape key to close the overlay
     overlay.bind("<Escape>", close_overlay)
     overlay.protocol("WM_DELETE_WINDOW", close_overlay)
 
@@ -145,11 +135,9 @@ def move_dot(overlay, canvas, x, y):
     size = 20
     overlay.geometry(f"{size}x{size}+{int(x - size/2)}+{int(y - size/2)}")
 
-# Initialize eyetracker
 gaze = GazeTracking()
 webcam = cv2.VideoCapture(0)
 
-# Calibration
 calibration_data = calibrate(gaze, webcam)
 polyx_left, polyy_left, polyx_right, polyy_right = create_calibration_function(calibration_data)
 
@@ -157,9 +145,8 @@ x_positions = []
 y_positions = []
 
 root = tk.Tk()
-root.withdraw()  # Hide the root window
+root.withdraw() 
 
-# Create the dot overlay
 overlay, canvas = create_dot_overlay()
 
 try:
@@ -169,6 +156,7 @@ try:
             if not ret:
                 continue
 
+            frame = cv2.rotate(frame, cv2.ROTATE_180)
             gaze.refresh(frame)
 
             left_eye_coords = gaze.pupil_left_coords()
