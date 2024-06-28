@@ -43,3 +43,8 @@ Inside the programs, you need to change a few parameters. They are highlighted i
     * `SCREEN_HEIGHT = 800`
 * Camera rotation `cv2.rotate(frame, cv2.ROTATE_180)`
 * Path to file `cv2.VideoWriter('output.avi', fourcc, 2.0, (monitor['width'], monitor['height']))`
+
+## Contact 
+For any questions or feedback, feel free to email 
+
+`visiosense.contact@gmail.com`
