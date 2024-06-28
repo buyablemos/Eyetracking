@@ -4,14 +4,15 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 
 def init_driver():
-    # Inicjalizacja przeglądarki
     options = webdriver.ChromeOptions()
     options.add_argument('--start-fullscreen')
-    options.add_argument('--ignore-certificate-errors')
+    #options.add_argument('--ignore-certificate-errors')
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=options)
-    driver.get('https://csc.poc.us.comarch.com/selfcare/eshop')
-    #driver.get('https://orange.pl')
+    #-------!!!-------
+    #Put your own link
+    #-------!!!-------
+    driver.get('https://orange.pl')
     return driver
 
 
@@ -23,17 +24,15 @@ class BrowserTrackerApp:
         self.update_position()
 
     def init_driver():
-        # Inicjalizacja przeglądarki
         options = webdriver.ChromeOptions()
         options.add_argument('--start-fullscreen')
-        options.add_argument('--ignore-certificate-errors')
+        #options.add_argument('--ignore-certificate-errors')
         service = Service(ChromeDriverManager().install())
         driver = webdriver.Chrome(service=service, options=options)
-        driver.get('https://csc.poc.us.comarch.com/selfcare/eshop')
+        driver.get('https://orange.pl')
         return driver
 
     def get_page_metrics(self):
-        # Uruchamianie JavaScript w przeglądarce i pobieranie wymiarów strony i okna
         page_height = self.driver.execute_script('return document.body.scrollHeight;')
         page_width = self.driver.execute_script('return document.body.scrollWidth;')
         viewport_height = self.driver.execute_script('return window.innerHeight;')

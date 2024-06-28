@@ -10,6 +10,9 @@ from ctypes import windll
 
 pygame.init()
 
+#--------!!!----------
+# Set your screen size
+#--------!!!----------
 SCREEN_WIDTH = 1600
 SCREEN_HEIGHT = 800
 BG_COLOR = (0, 0, 0)
@@ -58,6 +61,10 @@ def calibrate(gaze, webcam):
             ret, frame = webcam.read()
             if not ret:
                 continue
+
+            #-------!!!-------
+            # Rotate if needed
+            #-------!!!-------            
             frame = cv2.rotate(frame, cv2.ROTATE_180)
             gaze.refresh(frame)
             left_eye_coords = gaze.pupil_left_coords()
@@ -133,9 +140,15 @@ def create_dot_overlay():
 
 def move_dot(overlay, canvas, x, y):
     size = 20
-    overlay.geometry(f"{size}x{size}+{int(x - size/2)}+{int(y - size/2)}")
+    a=screen_width/SCREEN_WIDTH
+    b=screen_height/SCREEN_HEIGHT
+    overlay.geometry(f"{size}x{size}+{int(x*a - size/2)}+{int(y*b - size/2)}")
 
 gaze = GazeTracking()
+
+#-------!!!--------
+#Choose your camera
+#-------!!!--------
 webcam = cv2.VideoCapture(0)
 
 calibration_data = calibrate(gaze, webcam)
@@ -149,6 +162,8 @@ root.withdraw()
 
 overlay, canvas = create_dot_overlay()
 
+screen_width=root.winfo_screenwidth()
+screen_height=root.winfo_screenheight()
 try:
     while True:
         for i in range(3):
@@ -156,6 +171,9 @@ try:
             if not ret:
                 continue
 
+            #-------!!!-------
+            # Rotate if needed
+            #-------!!!-------   
             frame = cv2.rotate(frame, cv2.ROTATE_180)
             gaze.refresh(frame)
 
@@ -174,13 +192,13 @@ try:
             x_average = sum(x_positions) / len(x_positions)
             y_average = sum(y_positions) / len(y_positions)
 
-            if x_average > SCREEN_WIDTH:
-                x_average = SCREEN_WIDTH
+            if x_average > screen_width:
+                x_average = screen_width
             if x_average < 0:
                 x_average = 0
 
-            if y_average > SCREEN_HEIGHT:
-                y_average = SCREEN_HEIGHT
+            if y_average > screen_height:
+                y_average = screen_height
             if y_average < 0:
                 y_average = 0
 

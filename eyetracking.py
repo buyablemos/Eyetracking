@@ -14,7 +14,9 @@ import scroll
 
 pygame.init()
 
-
+#--------!!!----------
+# Set your screen size
+#--------!!!----------
 SCREEN_WIDTH = 1600
 SCREEN_HEIGHT = 800
 BG_COLOR = (0, 0, 0)
@@ -125,8 +127,9 @@ def calibrate(gaze, webcam):
             if not ret:
                 continue
 
-            #frame = frame[150:300, 250:400]
-            #frame = cv2.resize(frame, (1200, 1200))
+            #-------!!!-------
+            # Rotate if needed
+            #-------!!!-------
             frame = cv2.rotate(frame, cv2.ROTATE_180)
             gaze.refresh(frame)
             left_eye_coords = gaze.pupil_left_coords()
@@ -168,11 +171,12 @@ def interpolate_calibration_data(left_eye_position, right_eye_position, polyx_le
 
     return x, y
 
-# Initialize eyetracker
 gaze = GazeTracking()
+#-------!!!--------
+#Choose your camera
+#-------!!!--------
 webcam = cv2.VideoCapture(0)
 
-# Calibration
 calibration_data = calibrate(gaze, webcam)
 driver=scroll.init_driver()
 polyx_left, polyy_left, polyx_right, polyy_right = create_calibration_function(calibration_data)
@@ -186,6 +190,9 @@ sct = mss()
 monitor = sct.monitors[0]
 
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
+#-----------!!!--------------
+# Set file to save the record
+#-----------!!!--------------
 out = cv2.VideoWriter('output.avi', fourcc, 2.0, (monitor['width'], monitor['height']))
 
 try:
@@ -195,8 +202,9 @@ try:
             if not ret:
                 continue
 
-            #frame = frame[150:300, 250:400]
-            #frame = cv2.resize(frame, (1200, 1200))
+            #-------!!!-------
+            # Rotate if needed
+            #-------!!!-------   
             frame = cv2.rotate(frame, cv2.ROTATE_180)
             gaze.refresh(frame)
 
